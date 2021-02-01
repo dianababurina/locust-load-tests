@@ -50,6 +50,7 @@ class UserBehavior(TaskSet):
 
     SECTIONS = dict()
     ARTICLES = dict()
+    LIVE_SCORES_CENTRE = dict()
     
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
@@ -92,6 +93,15 @@ class UserBehavior(TaskSet):
             section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
             self.set_articles(section_response, application)
 
+    def set_live_scores_cente(self, application):
+        app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+
+        for theater in app_response['theaters']:
+            theater_id = theater['id']
+            if theater_id.endswith('-live-scores-centre'):
+                screen_ids = theater['screenIds']
+                self.LIVE_SCORES_CENTRE[theater_id] = self.LIVE_SCORES_CENTRE.get(theater_id, []) + screen_ids
+
     def extract_podcast_categories(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
         return filter_frames(podcasts_response, 'podcastCategory', 'articleId')
@@ -113,9 +123,12 @@ class UserBehavior(TaskSet):
         if 'X_ACCESS_TOKEN' in environ:
             self._headers['x-access-token'] = environ['X_ACCESS_TOKEN']
 
+        self.application = self.get_random_application()
+
         self.set_sections()
         self.set_top_stories_articles()
         self.set_section_articles()
+        self.set_live_scores_cente(self.application)
 
     @task(1)
     def app_task1_root(self):
@@ -181,6 +194,12 @@ class UserBehavior(TaskSet):
         application = self.get_random_application()
         podcast_episode_id = get_random_value(self.extract_podcast_episodes(application))
         self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_episode_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task13_live_scorres_centre(self):
+        theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
+        screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
+        self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
 
 class WebsiteUser(HttpLocust):
