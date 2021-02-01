@@ -51,6 +51,7 @@ class UserBehavior(TaskSet):
     SECTIONS = dict()
     ARTICLES = dict()
     LIVE_SCORES_CENTRE = dict()
+    SPORT_STATISTICS = list()
     
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
@@ -102,6 +103,15 @@ class UserBehavior(TaskSet):
                 screen_ids = theater['screenIds']
                 self.LIVE_SCORES_CENTRE[theater_id] = self.LIVE_SCORES_CENTRE.get(theater_id, []) + screen_ids
 
+    def set_sport_event_statistics_screens(self):
+        theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
+        screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
+        live_scores_response = self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+
+        sport_event_statistics_screen_ids = filter_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
+        for screen_id in sport_event_statistics_screen_ids:
+            self.SPORT_STATISTICS.extend(screen_id)
+
     def extract_podcast_categories(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
         return filter_frames(podcasts_response, 'podcastCategory', 'articleId')
@@ -129,6 +139,7 @@ class UserBehavior(TaskSet):
         self.set_top_stories_articles()
         self.set_section_articles()
         self.set_live_scores_cente(self.application)
+        self.set_sport_event_statistics_screens()
 
     @task(1)
     def app_task1_root(self):
@@ -200,6 +211,11 @@ class UserBehavior(TaskSet):
         theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
         screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
         self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task14_sport_event_statistics(self):
+        statistics_screen_id = get_random_value(self.SPORT_STATISTICS)
+        self.client.get('/apps/' + self.application + '/theaters/sports-event-statistics?screen_ids=' + statistics_screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
 
 class WebsiteUser(HttpLocust):
