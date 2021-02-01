@@ -27,12 +27,18 @@ def extract_data(data, path_fragments):
         
     return extract_data(child_data, path_fragments)
 
+def get_random_value(list):
+    return random.choice(list)
+
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
 
     APPLICATIONS = ['dailytelegraph']
+    HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
+    
     SECTIONS = dict()
     ARTICLES = dict()
+    
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
     def get_random_application(self):
@@ -104,6 +110,17 @@ class UserBehavior(TaskSet):
         application = self.get_random_application()
         article = self.get_random_item_from_dict(self.ARTICLES, application)
         self.client.get('/apps/' + application + '/theaters/' + article['theater_id'] + '?screen_ids=' + article['article_id'], headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task5_horoscopes(self):
+        application = self.get_random_application()
+        self.client.get('/apps/' + application + '/theaters/horoscopes-home?screen_ids=horoscopes', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task6_horoscopes_zodiac_sign(self):
+        application = self.get_random_application()
+        zodiac_sign = get_random_value(self.HOROSCOPES_ZODIAC_SIGNS)
+        self.client.get('/apps/' + application + '/theaters/horoscopes?screen_ids=' + zodiac_sign, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
