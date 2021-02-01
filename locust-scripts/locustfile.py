@@ -35,7 +35,8 @@ class UserBehavior(TaskSet):
 
     APPLICATIONS = ['dailytelegraph']
     HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
-    
+    COMICS = ['calvin-and-hobbes', 'dilbert', 'garfield', 'mark-knight-cartoons', 'valdmans-view']
+
     SECTIONS = dict()
     ARTICLES = dict()
     
@@ -121,6 +122,18 @@ class UserBehavior(TaskSet):
         application = self.get_random_application()
         zodiac_sign = get_random_value(self.HOROSCOPES_ZODIAC_SIGNS)
         self.client.get('/apps/' + application + '/theaters/horoscopes?screen_ids=' + zodiac_sign, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task7_comics_home(self):
+        application = self.get_random_application()
+        self.client.get('/apps/' + application + '/theaters/comics-home?screen_ids=comics', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task8_comics_info(self):
+        application = self.get_random_application()
+        comics_name = get_random_value(self.COMICS)
+        self.client.get('/apps/' + application + '/theaters/comics?screen_ids=' + comics_name, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
