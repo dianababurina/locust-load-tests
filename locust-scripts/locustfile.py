@@ -55,17 +55,24 @@ class UserBehavior(TaskSet):
                 if theater_id.endswith('--collection') and not theater_id == 'top-stories--collection':
                     self.SECTIONS[application] = self.SECTIONS.get(application, []) + [theater_id]  
 
-    def set_articles(self):
+    def set_articles(self, section_response, application):
+        frames = extract_data(section_response, 'screens[].frames[]'.split('.'))
+        for frame in frames:
+            if frame['type'] == 'article':
+                self.ARTICLES[application] = self.ARTICLES.get(application, []) + [{ 'theater_id': frame['theaterId'], 'article_id': frame['articleId'] }]
+
+    def set_top_stories_articles(self):
+        for application in self.APPLICATIONS:
+            top_stories_response = self.client.get('/apps/' + application + '/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+            self.set_articles(top_stories_response, application)
+            
+    def set_section_articles(self):
         for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
             application = self.get_random_application()
             section = self.get_random_item_from_dict(self.SECTIONS, application)
             
             section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-            frames = extract_data(section_response, 'screens[].frames[]'.split('.'))
-
-            for frame in frames:
-                if frame['type'] == 'article':
-                    self.ARTICLES[application] = self.ARTICLES.get(application, []) + [{ 'theater_id': frame['theaterId'], 'article_id': frame['articleId'] }]
+            self.set_articles(section_response, application)
 
     def on_start(self):
         """Called when a Locust start before any task is scheduled"""
@@ -75,7 +82,8 @@ class UserBehavior(TaskSet):
             self._headers['x-access-token'] = environ['X_ACCESS_TOKEN']
 
         self.set_sections()
-        self.set_articles()
+        self.set_top_stories_articles()
+        self.set_section_articles()
 
     @task(1)
     def app_task1_root(self):
