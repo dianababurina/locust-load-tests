@@ -92,10 +92,20 @@ class UserBehavior(TaskSet):
             section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
             self.set_articles(section_response, application)
 
-    def extract_podcasts_categories(self, application):
+    def extract_podcast_categories(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
         return filter_frames(podcasts_response, 'podcastCategory', 'articleId')
     
+    def extract_podcast_channels(self, application):
+        podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        return filter_frames(podcasts_response, 'podcastChannel', 'articleId')
+
+    def extract_podcast_episodes(self, application):
+        podcast_channel_ids = self.extract_podcast_channels(application)
+        channel_id = get_random_value(podcast_channel_ids)
+        podcasts_channel_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + channel_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        return filter_frames(podcasts_channel_response, 'podcastEpisode', 'articleId')
+
     def on_start(self):
         """Called when a Locust start before any task is scheduled"""
         self.client.verify = False
@@ -150,21 +160,27 @@ class UserBehavior(TaskSet):
         self.client.get('/apps/' + application + '/theaters/comics?screen_ids=' + comics_name, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task9_podcasts_channels(self):
+    def app_task9_podcast_channels(self):
         application = self.get_random_application()
         self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task10_podcasts_category_channels(self):
+    def app_task10_podcast_category_channels(self):
         application = self.get_random_application()
-        podcast_categories = self.extract_podcasts_categories(application)
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + get_random_value(podcast_categories) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        podcast_category_id = get_random_value(self.extract_podcast_categories(application))
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_category_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task11_podcasts_channel_episodes(self):
+    def app_task11_podcast_channel_episodes(self):
         application = self.get_random_application()
-        podcast_categories = self.extract_podcasts_categories(application)
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + get_random_value(podcast_categories) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        podcast_channel_id = get_random_value(self.extract_podcast_channels(application))
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_channel_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task12_podcast_episode(self):
+        application = self.get_random_application()
+        podcast_episode_id = get_random_value(self.extract_podcast_episodes(application))
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_episode_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
 
 class WebsiteUser(HttpLocust):
