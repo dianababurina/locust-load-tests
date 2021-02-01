@@ -33,6 +33,7 @@ class UserBehavior(TaskSet):
     APPLICATIONS = ['dailytelegraph']
     SECTIONS = dict()
     ARTICLES = dict()
+    MAX_SECTIONS_COUNT = 15
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 10
 
     def get_random_application(self):
@@ -45,14 +46,24 @@ class UserBehavior(TaskSet):
     def get_random_item_from_dict(self, dict, application):
         return random.choice(dict.get(application))
 
+    def extract_section_theater_ids(self, app_response):
+        collection_theater_ids = []
+
+        for theater in app_response['theaters']:
+            theater_id = theater['id']
+            if theater_id.endswith('--collection') and not theater_id == 'top-stories--collection':
+                collection_theater_ids.append(theater_id)
+        
+        return collection_theater_ids[0:self.MAX_SECTIONS_COUNT]
+
     def set_sections(self):
         # set sections -> collection theaters
         for application in self.APPLICATIONS:
             app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-            for theater in app_response['theaters']:
-                theater_id = theater['id']
-                if theater_id.endswith('--collection') and not theater_id == 'top-stories--collection':
-                    self.SECTIONS[application] = self.SECTIONS.get(application, []) + [theater_id]
+            
+            collection_theater_ids = self.extract_section_theater_ids(app_response)
+            for theater_id in collection_theater_ids:
+                self.SECTIONS[application] = self.SECTIONS.get(application, []) + [theater_id]
 
     def set_articles(self):
         for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
