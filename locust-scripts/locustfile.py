@@ -30,12 +30,23 @@ def extract_data(data, path_fragments):
 def get_random_value(list):
     return random.choice(list)
 
+def filter_frames(screen_response, frame_type, extract_value):
+    filtered_data = []
+    frames = extract_data(screen_response, 'screens[].frames[]'.split('.'))
+
+    for frame in frames:
+        if frame['type'] == frame_type:
+            filtered_data.append(frame[extract_value])
+
+    return filtered_data
+
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
 
     APPLICATIONS = ['dailytelegraph']
     HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
     COMICS = ['calvin-and-hobbes', 'dilbert', 'garfield', 'mark-knight-cartoons', 'valdmans-view']
+    PODCASTS_MAP = { 'dailytelegraph': 'dt' }
 
     SECTIONS = dict()
     ARTICLES = dict()
@@ -81,6 +92,10 @@ class UserBehavior(TaskSet):
             section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
             self.set_articles(section_response, application)
 
+    def extract_podcasts_categories(self, application):
+        podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        return filter_frames(podcasts_response, 'podcastCategory', 'articleId')
+    
     def on_start(self):
         """Called when a Locust start before any task is scheduled"""
         self.client.verify = False
@@ -133,6 +148,23 @@ class UserBehavior(TaskSet):
         application = self.get_random_application()
         comics_name = get_random_value(self.COMICS)
         self.client.get('/apps/' + application + '/theaters/comics?screen_ids=' + comics_name, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task9_podcasts_channels(self):
+        application = self.get_random_application()
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task10_podcasts_category_channels(self):
+        application = self.get_random_application()
+        podcast_categories = self.extract_podcasts_categories(application)
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + get_random_value(podcast_categories) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+
+    @task(1)
+    def app_task11_podcasts_channel_episodes(self):
+        application = self.get_random_application()
+        podcast_categories = self.extract_podcasts_categories(application)
+        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + get_random_value(podcast_categories) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
 
 class WebsiteUser(HttpLocust):
