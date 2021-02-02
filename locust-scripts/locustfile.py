@@ -42,6 +42,9 @@ def extract_frames(screen_response, frame_type, extract_value):
 
     return extracted_frames
 
+def get_random_item_from_dict(dict, application):
+    return random.choice(dict.get(application, []))
+
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
 
@@ -64,11 +67,8 @@ class UserBehavior(TaskSet):
         for application in self.APPLICATIONS:
             dict[application] = dict.get(application, []) + [item]
 
-    def get_random_item_from_dict(self, dict, application):
-        return random.choice(dict.get(application))
-
     def set_sections(self):
-        # set sections -> collection theaters
+        # set sections -> collection theaters for all apps
         for application in self.APPLICATIONS:
             app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
             
@@ -84,6 +84,7 @@ class UserBehavior(TaskSet):
                 self.ARTICLES[application] = self.ARTICLES.get(application, []) + [{ 'theater_id': frame['theaterId'], 'article_id': frame['articleId'] }]
 
     def set_top_stories_articles(self):
+        # set top stories articles -> article theater + screen ids for all apps
         for application in self.APPLICATIONS:
             top_stories_response = self.client.get('/apps/' + application + '/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
             self.set_articles(top_stories_response, application)
@@ -91,7 +92,7 @@ class UserBehavior(TaskSet):
     def set_section_articles(self):
         for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
             application = self.get_random_application()
-            section = self.get_random_item_from_dict(self.SECTIONS, application)
+            section = get_random_item_from_dict(self.SECTIONS, application)
             
             section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
             self.set_articles(section_response, application)
@@ -153,12 +154,12 @@ class UserBehavior(TaskSet):
 
     @task(1)
     def app_task_3_sections(self):
-        section = self.get_random_item_from_dict(self.SECTIONS, self.application)
+        section = get_random_item_from_dict(self.SECTIONS, self.application)
         self.client.get('/apps/' + self.application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
     def app_task_4_articles(self):
-        article = self.get_random_item_from_dict(self.ARTICLES, self.application)
+        article = get_random_item_from_dict(self.ARTICLES, self.application)
         self.client.get('/apps/' + self.application + '/theaters/' + article['theater_id'] + '?screen_ids=' + article['article_id'], headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
