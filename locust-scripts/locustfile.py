@@ -48,7 +48,7 @@ def get_random_item_from_dict(dict, application):
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
 
-    APPLICATIONS = ['dailytelegraph']
+    APPLICATIONS = ['dailytelegraph', 'adelaidenow']
     HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
     COMICS = ['calvin-and-hobbes', 'dilbert', 'garfield', 'mark-knight-cartoons', 'valdmans-view']
     PODCASTS_MAP = { 'dailytelegraph': 'dt', 'couriermail': 'cm', 'heraldsun': 'hs', 'adelaidenow': 'aa' }
@@ -97,23 +97,25 @@ class UserBehavior(TaskSet):
                 section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
                 self.set_articles(section_response, application)
 
-    def set_live_scores_cente(self, application):
-        app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+    def set_live_scores_centre(self, application):
+        if len(self.LIVE_SCORES_CENTRE.keys()) == 0:
+            app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
 
-        for theater in app_response['theaters']:
-            theater_id = theater['id']
-            if theater_id.endswith('-live-scores-centre'):
-                screen_ids = theater['screenIds']
-                self.LIVE_SCORES_CENTRE[theater_id] = self.LIVE_SCORES_CENTRE.get(theater_id, []) + screen_ids
+            for theater in app_response['theaters']:
+                theater_id = theater['id']
+                if theater_id.endswith('-live-scores-centre'):
+                    screen_ids = theater['screenIds']
+                    self.LIVE_SCORES_CENTRE[theater_id] = self.LIVE_SCORES_CENTRE.get(theater_id, []) + screen_ids
 
     def set_sport_event_statistics_screens(self):
-        theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
-        screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
-        live_scores_response = self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        if len(self.SPORT_STATISTICS) == 0:
+            theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
+            screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
+            live_scores_response = self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
 
-        sport_event_statistics_screen_ids = extract_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
-        for screen_id in sport_event_statistics_screen_ids:
-            self.SPORT_STATISTICS.extend(screen_id)
+            sport_event_statistics_screen_ids = extract_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
+            for screen_id in sport_event_statistics_screen_ids:
+                self.SPORT_STATISTICS.extend(screen_id)
 
     def extract_podcast_categories(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
@@ -141,7 +143,7 @@ class UserBehavior(TaskSet):
         self.set_sections(self.application)
         self.set_top_stories_articles(self.application)
         self.set_section_articles(self.application)
-        self.set_live_scores_cente(self.application)
+        self.set_live_scores_centre(self.application)
         self.set_sport_event_statistics_screens()
 
     @task(1)
