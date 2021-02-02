@@ -48,7 +48,7 @@ def get_random_item_from_dict(dict, application):
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
 
-    APPLICATIONS = ['dailytelegraph', 'adelaidenow']
+    APPLICATIONS = ['dailytelegraph']
     HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
     COMICS = ['calvin-and-hobbes', 'dilbert', 'garfield', 'mark-knight-cartoons', 'valdmans-view']
     PODCASTS_MAP = { 'dailytelegraph': 'dt', 'couriermail': 'cm', 'heraldsun': 'hs', 'adelaidenow': 'aa' }
