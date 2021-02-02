@@ -67,7 +67,7 @@ class UserBehavior(TaskSet):
         for application in self.APPLICATIONS:
             dict[application] = dict.get(application, []) + [item]
 
-    def set_sections(self, application):
+    def set_sections_screens(self, application):
         # set sections -> collection theaters
         if application not in self.SECTIONS or len(self.SECTIONS.get(application, [])) == 0:
             app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json() 
@@ -83,13 +83,13 @@ class UserBehavior(TaskSet):
             if frame['type'] == 'article':
                 self.ARTICLES[application] = self.ARTICLES.get(application, []) + [{ 'theater_id': frame['theaterId'], 'article_id': frame['articleId'] }]
 
-    def set_top_stories_articles(self, application):
+    def set_top_stories_articles_screens(self, application):
         # set top stories articles -> article theater + screen ids
         if application not in self.ARTICLES or len(self.ARTICLES.get(application, [])) == 0:
             top_stories_response = self.client.get('/apps/' + application + '/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
             self.set_articles(top_stories_response, application)    
             
-    def set_section_articles(self, application):
+    def set_section_articles_screens(self, application):
         # set section articles -> article theater + screen ids
         if application not in self.ARTICLES or len(self.ARTICLES.get(application, [])) == 0:
             for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
@@ -97,7 +97,7 @@ class UserBehavior(TaskSet):
                 section_response = self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
                 self.set_articles(section_response, application)
 
-    def set_live_scores_centre(self, application):
+    def set_live_scores_centre_screens(self, application):
         if len(self.LIVE_SCORES_CENTRE.keys()) == 0:
             app_response = self.client.get('/apps/' + application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
 
@@ -140,10 +140,10 @@ class UserBehavior(TaskSet):
 
         self.application = self.get_random_application()
 
-        self.set_sections(self.application)
-        self.set_top_stories_articles(self.application)
-        self.set_section_articles(self.application)
-        self.set_live_scores_centre(self.application)
+        self.set_sections_screens(self.application)
+        self.set_top_stories_articles_screens(self.application)
+        self.set_section_articles_screens(self.application)
+        self.set_live_scores_centre_screens(self.application)
         self.set_sport_event_statistics_screens()
 
     @task(1)
