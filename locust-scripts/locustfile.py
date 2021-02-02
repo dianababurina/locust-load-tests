@@ -32,15 +32,15 @@ def extract_data(data, path_fragments):
 def get_random_value(list):
     return random.choice(list)
 
-def filter_frames(screen_response, frame_type, extract_value):
-    filtered_data = []
+def extract_frames(screen_response, frame_type, extract_value):
+    extracted_frames = []
     frames = extract_data(screen_response, 'screens[].frames[]'.split('.'))
 
     for frame in frames:
         if frame['type'] == frame_type:
-            filtered_data.append(frame[extract_value])
+            extracted_frames.append(frame[extract_value])
 
-    return filtered_data
+    return extracted_frames
 
 class UserBehavior(TaskSet):
     TIMEOUT_SECONDS = 60
@@ -110,23 +110,23 @@ class UserBehavior(TaskSet):
         screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
         live_scores_response = self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
 
-        sport_event_statistics_screen_ids = filter_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
+        sport_event_statistics_screen_ids = extract_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
         for screen_id in sport_event_statistics_screen_ids:
             self.SPORT_STATISTICS.extend(screen_id)
 
     def extract_podcast_categories(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-        return filter_frames(podcasts_response, 'podcastCategory', 'articleId')
+        return extract_frames(podcasts_response, 'podcastCategory', 'articleId')
     
     def extract_podcast_channels(self, application):
         podcasts_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-        return filter_frames(podcasts_response, 'podcastChannel', 'articleId')
+        return extract_frames(podcasts_response, 'podcastChannel', 'articleId')
 
     def extract_podcast_episodes(self, application):
         podcast_channel_ids = self.extract_podcast_channels(application)
         channel_id = get_random_value(podcast_channel_ids)
         podcasts_channel_response = self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + channel_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-        return filter_frames(podcasts_channel_response, 'podcastEpisode', 'articleId')
+        return extract_frames(podcasts_channel_response, 'podcastEpisode', 'articleId')
 
     def on_start(self):
         """Called when a Locust start before any task is scheduled"""
