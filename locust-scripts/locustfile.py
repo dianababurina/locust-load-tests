@@ -4,6 +4,8 @@ from urllib3 import disable_warnings
 
 from locust import HttpLocust, TaskSet, task
 
+disable_warnings()
+
 def extract_data(data, path_fragments):
     child_path = path_fragments.pop(0)
     is_array = child_path.endswith('[]')
@@ -46,7 +48,7 @@ class UserBehavior(TaskSet):
     APPLICATIONS = ['dailytelegraph']
     HOROSCOPES_ZODIAC_SIGNS = ['aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn']
     COMICS = ['calvin-and-hobbes', 'dilbert', 'garfield', 'mark-knight-cartoons', 'valdmans-view']
-    PODCASTS_MAP = { 'dailytelegraph': 'dt' }
+    PODCASTS_MAP = { 'dailytelegraph': 'dt', 'couriermail': 'cm', 'heraldsun': 'hs', 'adelaidenow': 'aa' }
 
     SECTIONS = dict()
     ARTICLES = dict()
@@ -142,78 +144,68 @@ class UserBehavior(TaskSet):
         self.set_sport_event_statistics_screens()
 
     @task(1)
-    def app_task1_root(self):
-        self.client.get('/apps/' + self.get_random_application(), headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_1_root(self):
+        self.client.get('/apps/' + self.application, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
     
     @task(1)
-    def app_task2_top_stories(self):
-        self.client.get('/apps/' + self.get_random_application() + '/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_2_top_stories(self):
+        self.client.get('/apps/' + self.application + '/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task3_sections(self):
-        application = self.get_random_application()
-        section = self.get_random_item_from_dict(self.SECTIONS, application)
-        self.client.get('/apps/' + application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_3_sections(self):
+        section = self.get_random_item_from_dict(self.SECTIONS, self.application)
+        self.client.get('/apps/' + self.application + '/theaters/' + section, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task4_articles(self):
-        application = self.get_random_application()
-        article = self.get_random_item_from_dict(self.ARTICLES, application)
-        self.client.get('/apps/' + application + '/theaters/' + article['theater_id'] + '?screen_ids=' + article['article_id'], headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_4_articles(self):
+        article = self.get_random_item_from_dict(self.ARTICLES, self.application)
+        self.client.get('/apps/' + self.application + '/theaters/' + article['theater_id'] + '?screen_ids=' + article['article_id'], headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task5_horoscopes(self):
-        application = self.get_random_application()
-        self.client.get('/apps/' + application + '/theaters/horoscopes-home?screen_ids=horoscopes', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_5_horoscopes(self):
+        self.client.get('/apps/' + self.application + '/theaters/horoscopes-home?screen_ids=horoscopes', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task6_horoscopes_zodiac_sign(self):
-        application = self.get_random_application()
+    def app_task_6_horoscopes_zodiac_sign(self):
         zodiac_sign = get_random_value(self.HOROSCOPES_ZODIAC_SIGNS)
-        self.client.get('/apps/' + application + '/theaters/horoscopes?screen_ids=' + zodiac_sign, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get('/apps/' + self.application + '/theaters/horoscopes?screen_ids=' + zodiac_sign, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task7_comics_home(self):
-        application = self.get_random_application()
-        self.client.get('/apps/' + application + '/theaters/comics-home?screen_ids=comics', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_7_comics_home(self):
+        self.client.get('/apps/' + self.application + '/theaters/comics-home?screen_ids=comics', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task8_comics_info(self):
-        application = self.get_random_application()
+    def app_task_8_comics_info(self):
         comics_name = get_random_value(self.COMICS)
-        self.client.get('/apps/' + application + '/theaters/comics?screen_ids=' + comics_name, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get('/apps/' + self.application + '/theaters/comics?screen_ids=' + comics_name, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task9_podcast_channels(self):
-        application = self.get_random_application()
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_9_podcast_channels(self):
+        self.client.get('/apps/' + self.application + '/theaters/podcasts?screen_ids=' + self.PODCASTS_MAP.get(self.application) + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task10_podcast_category_channels(self):
-        application = self.get_random_application()
-        podcast_category_id = get_random_value(self.extract_podcast_categories(application))
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_category_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_10_podcast_category_channels(self):
+        podcast_category_id = get_random_value(self.extract_podcast_categories(self.application))
+        self.client.get('/apps/' + self.application + '/theaters/podcasts?screen_ids=' + podcast_category_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task11_podcast_channel_episodes(self):
-        application = self.get_random_application()
-        podcast_channel_id = get_random_value(self.extract_podcast_channels(application))
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_channel_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_11_podcast_channel_episodes(self):
+        podcast_channel_id = get_random_value(self.extract_podcast_channels(self.application))
+        self.client.get('/apps/' + self.application + '/theaters/podcasts?screen_ids=' + podcast_channel_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task12_podcast_episode(self):
-        application = self.get_random_application()
-        podcast_episode_id = get_random_value(self.extract_podcast_episodes(application))
-        self.client.get('/apps/' + application + '/theaters/podcasts?screen_ids=' + podcast_episode_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+    def app_task_12_podcast_episode(self):
+        podcast_episode_id = get_random_value(self.extract_podcast_episodes(self.application))
+        self.client.get('/apps/' + self.application + '/theaters/podcasts?screen_ids=' + podcast_episode_id + '/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task13_live_scorres_centre(self):
+    def app_task_13_live_scorres_centre(self):
         theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
         screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
         self.client.get('/apps/' + self.application + '/theaters/' + theater_id + '?screen_ids=' + screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
     @task(1)
-    def app_task14_sport_event_statistics(self):
+    def app_task_14_sport_event_statistics(self):
         statistics_screen_id = get_random_value(self.SPORT_STATISTICS)
         self.client.get('/apps/' + self.application + '/theaters/sports-event-statistics?screen_ids=' + statistics_screen_id, headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
 
