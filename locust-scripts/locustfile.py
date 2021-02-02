@@ -60,13 +60,6 @@ class UserBehavior(TaskSet):
     
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
-    def get_random_application(self):
-        return random.choice(self.APPLICATIONS)
-
-    def insert_to_dict(self, dict, item):
-        for application in self.APPLICATIONS:
-            dict[application] = dict.get(application, []) + [item]
-
     def set_sections_screens(self, application):
         # set sections -> collection theaters
         if application not in self.SECTIONS or len(self.SECTIONS.get(application, [])) == 0:
@@ -138,7 +131,7 @@ class UserBehavior(TaskSet):
         if 'X_ACCESS_TOKEN' in environ:
             self._headers['x-access-token'] = environ['X_ACCESS_TOKEN']
 
-        self.application = self.get_random_application()
+        self.application = random.choice(self.APPLICATIONS)
 
         self.set_sections_screens(self.application)
         self.set_top_stories_articles_screens(self.application)
