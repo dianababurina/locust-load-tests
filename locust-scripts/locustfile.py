@@ -60,15 +60,15 @@ class UserBehavior(TaskSet):
     
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
-    def set_sections_screens(self, application):
+    def set_sections_screens(self):
         # set sections -> collection theaters
-        if application not in self.SECTIONS or len(self.SECTIONS.get(application, [])) == 0:
-            app_response = self.client.get(f'/apps/{application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json() 
+        if self.application not in self.SECTIONS or len(self.SECTIONS.get(self.application, [])) == 0:
+            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json() 
             
             for theater in app_response['theaters']:
                 theater_id = theater['id']
                 if theater_id.endswith('--collection') and not theater_id == 'top-stories--collection':
-                    self.SECTIONS[application] = self.SECTIONS.get(application, []) + [theater_id]
+                    self.SECTIONS[self.application] = self.SECTIONS.get(self.application, []) + [theater_id]
 
     def set_articles(self, section_response, application):
         frames = extract_data(section_response, 'screens[].frames[]'.split('.'))
@@ -76,23 +76,24 @@ class UserBehavior(TaskSet):
             if frame['type'] == 'article':
                 self.ARTICLES[application] = self.ARTICLES.get(application, []) + [{ 'theater_id': frame['theaterId'], 'article_id': frame['articleId'] }]
 
-    def set_top_stories_articles_screens(self, application):
+    def set_top_stories_articles_screens(self):
         # set top stories articles -> article theater + screen ids
-        if application not in self.ARTICLES or len(self.ARTICLES.get(application, [])) == 0:
-            top_stories_response = self.client.get(f'/apps/{application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
-            self.set_articles(top_stories_response, application)    
+        if self.application not in self.ARTICLES or len(self.ARTICLES.get(self.application, [])) == 0:
+            top_stories_response = self.client.get(f'/apps/{self.application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+            self.set_articles(top_stories_response, self.application)    
             
-    def set_section_articles_screens(self, application):
+    def set_section_articles_screens(self):
         # set section articles -> article theater + screen ids
-        if application not in self.ARTICLES or len(self.ARTICLES.get(application, [])) == 0:
+        if self.application not in self.ARTICLES or len(self.ARTICLES.get(self.application, [])) == 0:
             for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
-                section = get_random_item_from_dict(self.SECTIONS, application)
-                section_response = self.client.get(f'/apps/{application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
-                self.set_articles(section_response, application)
+                section = get_random_item_from_dict(self.SECTIONS, self.application)
+                section_response = self.client.get(f'/apps/{self.application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+                self.set_articles(section_response, self.application)
 
-    def set_live_scores_centre_screens(self, application):
+    def set_live_scores_centre_screens(self):
+        # set live scores centre -> theater + screen ids
         if len(self.LIVE_SCORES_CENTRE.keys()) == 0:
-            app_response = self.client.get(f'/apps/{application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
 
             for theater in app_response['theaters']:
                 theater_id = theater['id']
@@ -101,6 +102,7 @@ class UserBehavior(TaskSet):
                     self.LIVE_SCORES_CENTRE[theater_id] = self.LIVE_SCORES_CENTRE.get(theater_id, []) + screen_ids
 
     def set_sport_event_statistics_screens(self):
+        # set sport event statistics -> theater + screen ids
         if len(self.SPORT_STATISTICS) == 0:
             theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
             screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
@@ -133,10 +135,10 @@ class UserBehavior(TaskSet):
 
         self.application = random.choice(self.APPLICATIONS)
 
-        self.set_sections_screens(self.application)
-        self.set_top_stories_articles_screens(self.application)
-        self.set_section_articles_screens(self.application)
-        self.set_live_scores_centre_screens(self.application)
+        self.set_sections_screens()
+        self.set_top_stories_articles_screens()
+        self.set_section_articles_screens()
+        self.set_live_scores_centre_screens()
         self.set_sport_event_statistics_screens()
 
     @task(1)
