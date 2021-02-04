@@ -63,7 +63,7 @@ class UserBehavior(TaskSet):
     def set_sections_screens(self):
         # set sections -> collection theaters
         if self.application not in self.SECTIONS or len(self.SECTIONS.get(self.application, [])) == 0:
-            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json() 
+            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='app response').json() 
             
             for theater in app_response['theaters']:
                 theater_id = theater['id']
@@ -79,7 +79,7 @@ class UserBehavior(TaskSet):
     def set_top_stories_articles_screens(self):
         # set top stories articles -> article theater + screen ids
         if self.application not in self.ARTICLES or len(self.ARTICLES.get(self.application, [])) == 0:
-            top_stories_response = self.client.get(f'/apps/{self.application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+            top_stories_response = self.client.get(f'/apps/{self.application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='top stories')
             self.set_articles(top_stories_response, self.application)    
             
     def set_section_articles_screens(self):
@@ -87,13 +87,13 @@ class UserBehavior(TaskSet):
         if self.application not in self.ARTICLES or len(self.ARTICLES.get(self.application, [])) == 0:
             for _ in range(0, self.MAX_SECTIONS_FOR_ARTICLES_REQUEST):
                 section = get_random_item_from_dict(self.SECTIONS, self.application)
-                section_response = self.client.get(f'/apps/{self.application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+                section_response = self.client.get(f'/apps/{self.application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='sections').json()
                 self.set_articles(section_response, self.application)
 
     def set_live_scores_centre_screens(self):
         # set live scores centre -> theater + screen ids
         if len(self.LIVE_SCORES_CENTRE.keys()) == 0:
-            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+            app_response = self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='app response').json()
 
             for theater in app_response['theaters']:
                 theater_id = theater['id']
@@ -106,24 +106,24 @@ class UserBehavior(TaskSet):
         if len(self.SPORT_STATISTICS) == 0:
             theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
             screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
-            live_scores_response = self.client.get(f'/apps/{self.application}/theaters/{theater_id}?screen_ids={screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+            live_scores_response = self.client.get(f'/apps/{self.application}/theaters/{theater_id}?screen_ids={screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='live scores centre').json()
 
             sport_event_statistics_screen_ids = extract_frames(live_scores_response, 'metrosSportLiveScore', 'screenIds')
             for screen_id in sport_event_statistics_screen_ids:
                 self.SPORT_STATISTICS.extend(screen_id)
 
     def extract_podcast_categories(self, application):
-        podcasts_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        podcasts_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast channels').json()
         return extract_frames(podcasts_response, 'podcastCategory', 'articleId')
     
     def extract_podcast_channels(self, application):
-        podcasts_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        podcasts_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast channels').json()
         return extract_frames(podcasts_response, 'podcastChannel', 'articleId')
 
     def extract_podcast_episodes(self, application):
         podcast_channel_ids = self.extract_podcast_channels(application)
         channel_id = get_random_value(podcast_channel_ids)
-        podcasts_channel_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={channel_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False).json()
+        podcasts_channel_response = self.client.get(f'/apps/{application}/theaters/podcasts?screen_ids={channel_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast channel episodes').json()
         return extract_frames(podcasts_channel_response, 'podcastEpisode', 'articleId')
 
     def on_start(self):
@@ -143,69 +143,69 @@ class UserBehavior(TaskSet):
 
     @task(1)
     def app_task_1_root(self):
-        self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='app response')
     
     @task(1)
     def app_task_2_top_stories(self):
-        self.client.get(f'/apps/{self.application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/top-stories', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='top stories')
 
     @task(1)
     def app_task_3_sections(self):
         section = get_random_item_from_dict(self.SECTIONS, self.application)
-        self.client.get(f'/apps/{self.application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/{section}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='sections')
 
     @task(1)
     def app_task_4_articles(self):
         article = get_random_item_from_dict(self.ARTICLES, self.application)
-        self.client.get(f'/apps/{self.application}/theaters/{article.get("theater_id")}?screen_ids={article.get("article_id")}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/{article.get("theater_id")}?screen_ids={article.get("article_id")}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='articles')
 
     @task(1)
     def app_task_5_horoscopes(self):
-        self.client.get(f'/apps/{self.application}/theaters/horoscopes-home?screen_ids=horoscopes', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/horoscopes-home?screen_ids=horoscopes', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='horoscopes home')
 
     @task(1)
     def app_task_6_horoscopes_zodiac_sign(self):
         zodiac_sign = get_random_value(self.HOROSCOPES_ZODIAC_SIGNS)
-        self.client.get(f'/apps/{self.application}/theaters/horoscopes?screen_ids={zodiac_sign}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/horoscopes?screen_ids={zodiac_sign}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='horoscopes zodiac sign')
 
     @task(1)
     def app_task_7_comics_home(self):
-        self.client.get(f'/apps/{self.application}/theaters/comics-home?screen_ids=comics', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/comics-home?screen_ids=comics', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='comics home')
 
     @task(1)
     def app_task_8_comics_info(self):
         comics_name = get_random_value(self.COMICS)
-        self.client.get(f'/apps/{self.application}/theaters/comics?screen_ids={comics_name}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/comics?screen_ids={comics_name}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='comics info')
 
     @task(1)
     def app_task_9_podcast_channels(self):
-        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(self.application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={self.PODCASTS_MAP.get(self.application)}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast channels')
 
     @task(1)
     def app_task_10_podcast_category_channels(self):
         podcast_category_id = get_random_value(self.extract_podcast_categories(self.application))
-        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_category_id}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_category_id}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast category channels')
 
     @task(1)
     def app_task_11_podcast_channel_episodes(self):
         podcast_channel_id = get_random_value(self.extract_podcast_channels(self.application))
-        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_channel_id}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_channel_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast channel episodes')
 
     @task(1)
     def app_task_12_podcast_episode(self):
         podcast_episode_id = get_random_value(self.extract_podcast_episodes(self.application))
-        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_episode_id}/channels', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/podcasts?screen_ids={podcast_episode_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='podcast episode')
 
     @task(1)
     def app_task_13_live_scorres_centre(self):
         theater_id = get_random_value(list(self.LIVE_SCORES_CENTRE.keys()))
         screen_id = get_random_value(self.LIVE_SCORES_CENTRE.get(theater_id, []))
-        self.client.get(f'/apps/{self.application}/theaters/{theater_id}?screen_ids={screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/{theater_id}?screen_ids={screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='live scores centre')
 
     @task(1)
     def app_task_14_sport_event_statistics(self):
         statistics_screen_id = get_random_value(self.SPORT_STATISTICS)
-        self.client.get(f'/apps/{self.application}/theaters/sports-event-statistics?screen_ids={statistics_screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False)
+        self.client.get(f'/apps/{self.application}/theaters/sports-event-statistics?screen_ids={statistics_screen_id}', headers=self._headers, timeout=self.TIMEOUT_SECONDS, verify=False, name='sport event statistics')
 
 
 class WebsiteUser(HttpLocust):
