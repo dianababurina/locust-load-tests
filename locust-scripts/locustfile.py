@@ -1,10 +1,14 @@
 import random
 from os import environ
 from urllib3 import disable_warnings
+from datetime import datetime
 
 from locust import HttpLocust, TaskSet, task
 
 disable_warnings()
+
+LOGGER_INFO_FILE = "locustfile-info.log"
+LOGGER_ERROR_FILE = "locustfile-error.log"
 
 def extract_data(data, path_fragments):
     child_path = path_fragments.pop(0)
@@ -60,6 +64,10 @@ class UserBehavior(TaskSet):
     
     MAX_SECTIONS_FOR_ARTICLES_REQUEST = 5
 
+    def logger(self, type, message):
+        logger_file = self.LOGGER_ERROR if type == 'error' else self.LOGGER_INFO
+        logger_file.write(f'[{datetime.today().strftime("%Y-%m-%d-%H:%M:%S")}] {message} \n')
+            
     def check_payload(self, response):
         json_var = response.json()
         id = json_var['id']
@@ -68,7 +76,9 @@ class UserBehavior(TaskSet):
 
         if len(frames) < 1 or response.status_code != 200:
             response.failure("No frames")
-            print(f'id: {id}, http status: {response.status_code}, total payload (bytes): {len(response.content)}, number of frames: {len(frames)}, url: {response.url}')
+            self.logger('error', f'id: {id}, http status: {response.status_code}, total payload (bytes): {len(response.content)}, number of frames: {len(frames)}, url: {response.url}')
+        else:
+            self.logger('info', f'id: {id}, http status: {response.status_code}, total payload (bytes): {len(response.content)}, number of frames: {len(frames)}')
 
     def set_sections_screens(self):
         # set sections -> collection theaters
@@ -152,6 +162,13 @@ class UserBehavior(TaskSet):
         self.set_section_articles_screens()
         self.set_live_scores_centre_screens()
         self.set_sport_event_statistics_screens()
+
+        self.LOGGER_INFO = open(LOGGER_INFO_FILE, "a")
+        self.LOGGER_ERROR = open(LOGGER_ERROR_FILE, "a")
+
+    def on_stop(self):
+        self.LOGGER_INFO.close()
+        self.LOGGER_ERROR.close()
 
     @task(1)
     def app_task_1_root(self):
